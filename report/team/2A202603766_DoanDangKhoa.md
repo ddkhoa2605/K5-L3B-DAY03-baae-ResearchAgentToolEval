@@ -1,7 +1,5 @@
 # Báo cáo cá nhân — Đoàn Đăng Khoa
 
-> **DRAFT.** Đổi tên file thành `<MSSV>_DoanDangKhoa.md` và điền các chỗ `<...>` trước khi nộp.
-
 ## 1. Thông tin thành viên
 
 - Họ tên: Đoàn Đăng Khoa
@@ -43,7 +41,7 @@
 
 ## 4. Bằng chứng
 
-- **Commit** (branch `doandangkhoa`, đã merge vào `main` qua PR #2 và PR #3):
+- **Commit** (branch `doandangkhoa`, đã merge vào `main` qua PR #2, #3, #6, #7):
   - `7203903` CP1: baseline v0 run, version log, failure analysis B2
   - `c0f0246` v1: rewrite system prompt (0.65 → 0.95)
   - `2d7c597` v2: rewrite tool descriptions + send/clarify yes_no boundary (0.95 → 0.90)
@@ -51,6 +49,8 @@
   - `5db4dca` report: add v3 row to B1
   - `78f376e` v4: declare 4 new team tools + routing rules (0.95 → 0.95)
   - `99d326e` (committer, tác giả là Nguyễn Văn Minh): đưa 4 tool + 12 test vào `main`
+  - `ca83a7e` khôi phục `system_prompt.md`, `tools.yaml`, `version_log.csv` về v4 và B1/B2; thêm mục 3, 7 của group report và báo cáo cá nhân
+  - `090ebfb` điền `TEAM.md` (thông tin repo, vai trò, mục cá nhân) và sửa định dạng bảng/heading
 - **Run JSON** (`starter_v0/runs/`), tất cả có `provider_error_cases = 0`, `measured_cases = 20`:
   - `v0_B_base_openrouter_20261110T174226406183.json`
   - `v1_B_base_openai_20261110T182945282365.json`
@@ -73,8 +73,6 @@
   - Ví dụ AI/mình làm sai và đã sửa:
 
 ## 5. Tự đánh giá
-
-> `<Tự viết lại bằng lời của mình. Gợi ý các ý dưới đây.>`
 
 - **Làm tốt:**
   - Phân công, lên kế hoạch để làm việc nhóm tối ưu
