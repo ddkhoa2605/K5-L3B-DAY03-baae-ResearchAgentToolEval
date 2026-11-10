@@ -2,17 +2,17 @@
 
 ## Thông tin nhóm
 
-- Tên nhóm:
-- Lớp: L3A / L3B
+- Tên nhóm: baae
+- Lớp: L3B
 - Repo nhóm: `K5-L3A-DAY03-TenNhom-ResearchAgentToolEval` hoặc `K5-L3B-DAY03-TenNhom-ResearchAgentToolEval` (xem [SUBMISSION.md](SUBMISSION.md))
 - URL repo, nhánh nộp, commit chốt:
 
 ## Thành viên
 
 | STT | Họ tên | MSSV | Email | GitHub | Vai trò |
-| --: | ------ | ---- | ----- | ------ | ------- |
-| 1 | Hồ An Lộc | 2A202603743 | 26ai.locha@vinuni.edu.vn | hoanloc | Eval nhóm, UI, báo cáo |
-| 2 | Nguyễn Văn Minh | 2A202603771 | 26ai.minhnv7@vinuni.edu.vn | nguyenvanminh | Tool Engineer & Testing Specialist |
+| 1 | Đoàn Đăng Khoa | 2A202603766 | 26ai.khoadd@vinuni.edu.vn | ddkhoa2605 | ------- |
+| 2 | Hồ An Lộc | 2A202603743 | 26ai.locha@vinuni.edu.vn | hoanloc | Eval nhóm, UI, báo cáo |
+| 3 | Nguyễn Văn Minh | 2A202603771 | 26ai.minhnv7@vinuni.edu.vn | nguyenvanminh | Tool Engineer & Testing Specialist |
 
 ## Cá nhân
 
