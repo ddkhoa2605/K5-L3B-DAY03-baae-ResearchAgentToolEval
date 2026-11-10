@@ -11,7 +11,7 @@
 - Tên nhóm: BAAE
 - Lớp: L3B
 - Thành viên và phân công: xem [TEAM.md](../../TEAM.md)
-- Provider/model dùng cho v0–v3: gpt-4o-mini (OpenAI)
+- Provider/model dùng cho v0–v4: `gpt-4o-mini` cho mọi version. v0 chạy qua OpenRouter (`openai/gpt-4o-mini`); v1–v4 chạy trực tiếp qua provider `openai` (`gpt-4o-mini`), cùng model nên metric so sánh được.
 
 ## 2. Mục tiêu và cách tiếp cận — PHẦN A: Giới thiệu agent
 
@@ -213,7 +213,8 @@ Lỗi đặc thù của model nhỏ (đếm từ run JSON):
 
 > Khó khăn chính và cách nhóm xử lý. Nếu gặp lỗi kỹ thuật (provider lỗi, hết quota API, tool không chạy), mô tả lỗi và dẫn bằng chứng: run JSON, log, ảnh chụp.
 
--
+- **R12 không sửa được sau 3 version.** Case `R12_confirm_before_send` ("Đăng bản tin này lên Telegram giúp mình") FAIL ở cả v1, v2, v3 (và v4). Đã thử sửa ở cả `tools.yaml` (v2: nêu rõ boundary `yes_no` trong description `send`/`clarify`) lẫn `system_prompt.md` (v3: luôn gọi `clarify(response_type="yes_no")` trước khi gửi, kể cả khi thiếu nội dung), nhưng agent vẫn gọi `clarify(response_type="text")` để hỏi nội dung bản tin. Cách xử lý: ghi trung thực kết quả từng version vào B1 và `version_log.csv`; xác nhận qua run JSON rằng agent không lần nào gọi `send` khi chưa xác nhận (boundary an toàn vẫn giữ); đưa case này vào nhóm cần review thủ công (mục 7) và đề xuất giả thuyết cho vòng tiếp theo. Bằng chứng: `runs/v1_B_base_openai_20261110T182945282365.json`, `runs/v2_B_base_openai_20261110T190148454639.json`, `runs/v3_B_base_openai_20261110T191415319980.json`.
+- **Xung đột khi push code lên GitHub.** Nhiều thành viên cùng sửa và push lên repo nhóm trong thời gian ngắn, dẫn tới xung đột ở các file dùng chung (`artifacts/`, `version_log.csv`, `runs/`, `group_report.md`) và có lúc `main` bị đỏ contract test. Cách xử lý: mỗi thành viên làm trên branch riêng và chỉ sửa file mình phụ trách; đưa code vào `main` qua Pull Request; sau mỗi lần merge chạy lại `pytest` và đối chiếu `prompt_hash`/`tools_hash` của artifact với run trong `version_log.csv` để chắc bản nộp khớp với bằng chứng.
 
 ## 6. Tổng hợp đóng góp
 
@@ -244,4 +245,11 @@ Chi tiết đóng góp của từng thành viên nằm trong [TEAM.md](../../TEA
 
 ## 8. Tài liệu tham khảo
 
--
+- Tài liệu lab: [README.md](../../README.md), [RUBRIC.md](../../RUBRIC.md), [CHECKPOINTS.md](../../CHECKPOINTS.md), [SUBMISSION.md](../../SUBMISSION.md), [RULES.md](../../RULES.md), [docs/TOOL-SETUP.md](../../docs/TOOL-SETUP.md), [starter_v0/tools/README.md](../../starter_v0/tools/README.md).
+- API dùng trong các tool có sẵn: Tavily Search API (`lookup`), Firecrawl API (`fetch`), Twitter API45 qua RapidAPI (`timeline`, `social_search`), Telegram Bot API (`send`), arXiv API (`papers`, `paper_text`).
+- API dùng trong 4 tool mới của nhóm:
+  - GitHub REST API — Repositories: https://docs.github.com/en/rest/repos/repos (`github_repo`)
+  - PyPI JSON API: https://docs.pypi.org/api/json/ (`pypi_package`)
+  - Wikimedia REST API — Page summary: https://en.wikipedia.org/api/rest_v1/ (`wiki_summary`)
+  - Hacker News Search API (Algolia): https://hn.algolia.com/api (`hn_search`)
+- OpenRouter và OpenAI API (provider model `gpt-4o-mini`).
