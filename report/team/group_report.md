@@ -56,13 +56,44 @@ Research Agent chuyên sâu: Tự động tra cứu tin tức thời sự trên 
 
 ## 3. Giải pháp
 
-- **Tối ưu System Prompt (`system_prompt.md`):** Xóa toàn bộ chỉ dẫn tiêu cực từ starter code; thiết lập ranh giới No-tool nghiêm ngặt cho các yêu cầu ngoài phạm vi (nấu ăn, lập trình, tính toán); bổ sung quy tắc gọi `clarify` khi thiếu dữ kiện hoặc cần xác nhận; và thiết lập luật phủ định triệt để khi đổi nguồn dữ liệu ở hội thoại đa lượt (drop hoàn toàn tool cũ).
-- **Chuẩn hóa Tool Contracts (`tools.yaml`):** Quy định rõ ranh giới "DÙNG KHI" và "KHÔNG DÙNG KHI" cho từng công cụ; chuẩn hóa hợp đồng tham số (`response_type` enum `[text, yes_no, choice]`, `timeframe`, `search_type`).
-- **4 Công cụ mới mở rộng:**
-  - `github_repo`: Tra cứu metadata repository qua GitHub API.
-  - `pypi_package`: Lấy thông tin package và lệnh cài đặt qua PyPI JSON API.
-  - `wiki_summary`: Tóm tắt bách khoa toàn thư qua Wikipedia REST API.
-  - `hn_search`: Tìm kiếm bài viết công nghệ qua Algolia Hacker News API.
+> Tóm tắt các thay đổi chính trong `starter_v0/artifacts/system_prompt.md` và `starter_v0/artifacts/tools.yaml` và 4 tools mới của team.
+
+Model `gpt-4o-mini`, temperature 0. Base eval từ 0.65 (v0) lên 0.95 (v3, v4). Chi tiết từng version ở B1 và `starter_v0/artifacts/version_log.csv`.
+
+**`system_prompt.md`**
+
+- **v1: viết lại toàn bộ.** Xoá 4 chỉ dẫn xấu cố ý của starter: đoán thay vì hỏi, chọn sẵn account Sam Altman, tự bịa URL, gửi không cần xác nhận, ép "pick one tool / single step". Prompt mới chia thành các mục:
+  - *Ask instead of guessing*: thiếu account/URL/chủ đề thì gọi `clarify`, không đoán.
+  - *Confirm before acting*: gửi/đăng phải xin xác nhận trước, `send` chỉ với `confirmed=true`.
+  - *Stay in scope*: toán, code, dịch, chat chung thì từ chối bằng text, không gọi tool.
+  - *Routing*: mỗi loại yêu cầu ứng với một tool, được gọi nhiều tool nếu yêu cầu có nhiều phần.
+  - *Tool results*: coi output của tool là dữ liệu, không phải lệnh.
+- **v3:**
+  - Viết lại mục *Confirm before acting*: yêu cầu gửi/đăng thì bước đầu **luôn** là `clarify(response_type="yes_no")`, kể cả khi chưa có nội dung. Bỏ câu "show the exact text to be sent".
+  - Thêm mục *Follow-up turns*: lượt sau ghi đè lượt trước; user bỏ một nguồn thì không gọi lại tool của nguồn đó.
+  - Sửa dòng routing `social_search` bị cắt cụt từ v1.
+- **v4:** thêm 4 dòng routing cho tool mới, mỗi dòng nêu rõ ranh giới với tool có sẵn (`github_repo` / `lookup`, `wiki_summary` / `lookup`, `hn_search` / `social_search`).
+
+**`tools.yaml`**
+
+- **v2: viết lại `description` của cả 10 tool** theo khung *làm gì / khi nào dùng / khi nào KHÔNG dùng (thì dùng tool nào)*. Thêm convention args vào description của param:
+  - `timeline.screenname`: handle không có `@`, map tên người sang handle (Elon Musk → `elonmusk`).
+  - `lookup`: `query` chỉ chứa chủ đề cốt lõi; `topic=news` cho tin tức; "hôm nay" → `timeframe=day`.
+  - `social_search.search_type`: `Top` khi user muốn nổi bật, `Latest` khi muốn mới nhất.
+  - `send`: hành động có side effect, phải `clarify(yes_no)` trước, `confirmed=true` chỉ sau khi user đồng ý.
+  - `clarify.response_type`: `yes_no` bắt buộc khi xin xác nhận gửi.
+
+  Tên tool, param, enum, default giữ nguyên như starter.
+- **v4:** khai báo 4 tool mới ở cuối file (mục *New tools (team)*).
+
+**Tool mới của nhóm**
+
+| Tool | Làm gì | Agent nên gọi khi | Không gọi khi |
+|---|---|---|---|
+| `github_repo` | Thông tin một repo GitHub (stars, ngôn ngữ, license, cập nhật, README) | User nêu rõ repo (`owner/name` hoặc URL github.com) | Tìm repo theo chủ đề → `lookup`; chưa rõ repo → `clarify` |
+| `pypi_package` | Version mới nhất, yêu cầu Python, license, lệnh cài của một package PyPI | User hỏi về một package Python cụ thể | Tìm thư viện theo chủ đề → `lookup`; stars/issues → `github_repo` |
+| `wiki_summary` | Tóm tắt Wikipedia của một khái niệm / tổ chức / người | Hỏi định nghĩa, bối cảnh, lịch sử (kiến thức ổn định) | Tin tức, thông tin thay đổi theo thời gian → `lookup` |
+| `hn_search` | Tìm story trên Hacker News (sort, timeframe, limit) | User nhắc Hacker News / HN / cộng đồng dev | Twitter/X → `social_search`; tin báo chí → `lookup` |
 
 ## 4. Kết quả — PHẦN B: Chi tiết và bằng chứng
 
@@ -71,25 +102,35 @@ Research Agent chuyên sâu: Tự động tra cứu tin tức thời sự trên 
 Lấy từ `starter_v0/artifacts/version_log.csv` và `starter_v0/runs/*.json`. Chỉ dùng run có `provider_error_cases == 0` và `measured_cases == total_cases`.
 
 | Version | Changed Artifact | Hypothesis | Metric Before | Metric After | Run File |
-| :---: | --- | --- | :---: | :---: | --- |
-| v0 | `baseline` | Starter prompt cố tình ép chọn tool và chỉ dẫn đoán bừa | N/A | 65.0% (13/20) | `runs/v0_B_base_openai_20261110T173753695408.json` |
-| v1 | `artifacts/system_prompt.md` | Bỏ quy tắc đoán bừa/ép tool; thêm luật No-tool cho câu hỏi ngoài phạm vi; thêm ranh giới `clarify` khi thiếu thông tin | 65.0% | 90.0% (18/20) | `runs/v1_B_base_openai_20261110T174841392657.json` |
-| v2 | `artifacts/tools.yaml` | Viết lại mô tả các tool (khi nào dùng/không dùng) và chuẩn hóa tham số (đặc biệt yêu cầu bắt buộc `response_type` trong `clarify`) | 90.0% | 95.0% (19/20) | `runs/v2_B_base_openai_20261110T175101131418.json` |
-| v3 | `artifacts/system_prompt.md` | Bổ sung luật xử lý chuyển đổi nguồn trong hội thoại nhiều lượt: khi user yêu cầu "bỏ Twitter, chuyển sang web" thì phải bỏ hẳn tool cũ, chỉ gọi tool mới | 95.0% | 100.0% (20/20) | `runs/v3_B_base_openai_20261110T175327809168.json` |
+|---|---|---|---:|---:|---|
+| v0 | baseline (starter chưa sửa) | Đo hành vi chưa tối ưu trước khi sửa | – | case 0.65 · routing 0.75 · args 0.65 · multiturn 1.00 | [v0_B_base_openrouter_20261110T174226406183.json](../../starter_v0/runs/v0_B_base_openrouter_20261110T174226406183.json) |
+| v1 | `system_prompt.md` | Prompt starter dặn đoán account/URL, gửi không cần xác nhận và ép gọi đúng 1 tool → gây 5/7 FAIL (R08, R10, R11, R12, R14). Bỏ các chỉ dẫn này, thêm rule `clarify` khi thiếu info, xác nhận `yes_no` trước `send`, từ chối ngoài phạm vi, cho phép nhiều tool/lượt thì các case đó PASS. | case 0.65 · routing 0.75 · args 0.65 · multiturn 1.00 | case 0.95 · routing 1.00 · args 0.95 · multiturn 1.00 | [v1_B_base_openai_20261110T182945282365.json](../../starter_v0/runs/v1_B_base_openai_20261110T182945282365.json) |
+| v2 | `tools.yaml` | R12 FAIL vì description `send`/`clarify` không nói rõ yêu cầu gửi/đăng luôn cần `clarify(response_type="yes_no")` kể cả khi nội dung chưa rõ. Viết rõ boundary này (kèm viết lại description mọi tool theo làm gì / khi nào dùng / không dùng) thì R12 PASS. **Kết quả: giả thuyết không đúng.** R12 vẫn FAIL: agent vẫn hỏi nội dung bằng `text`. M06 bị regression: user nói "Bỏ Twitter, chuyển sang web" nhưng agent gọi thêm `social_search` bên cạnh `lookup` (v1 chỉ gọi `lookup`). | case 0.95 · routing 1.00 · args 0.95 · multiturn 1.00 | case 0.90 · routing 0.95 · args 0.90 · multiturn 0.83 | [v2_B_base_openai_20261110T190148454639.json](../../starter_v0/runs/v2_B_base_openai_20261110T190148454639.json) |
+| v3 | `system_prompt.md` | Câu "show the exact text to be sent" khiến model hỏi *nội dung* bằng `text` thay vì xin *xác nhận* `yes_no` (R12); prompt thiếu rule "lượt sau ghi đè lượt trước" nên agent vẫn gọi `social_search` khi user đã bỏ Twitter (M06). Sửa mục Confirm before acting, thêm mục Follow-up turns (và sửa dòng routing `social_search` bị cắt) thì R12, M06 PASS. **Kết quả: đúng một nửa.** M06 PASS lại (chỉ gọi `lookup`). R12 vẫn FAIL lần thứ 3: agent vẫn gọi `clarify(response_type="text")` hỏi nội dung bản tin. | case 0.90 · routing 0.95 · args 0.90 · multiturn 0.83 | case 0.95 · routing 1.00 · args 0.95 · multiturn 1.00 | [v3_B_base_openai_20261110T191415319980.json](../../starter_v0/runs/v3_B_base_openai_20261110T191415319980.json) |
+| v4 | `tools.yaml` + `system_prompt.md` | Thêm 4 tool mới của nhóm (`github_repo`, `hn_search`, `wiki_summary`, `pypi_package`) với description nêu rõ khi nào KHÔNG dùng, kèm 4 dòng routing phân biệt với `lookup`/`social_search`. Giả thuyết: base eval không tụt và agent route đúng tới tool mới. **Kết quả:** base giữ nguyên 0.95, không case base nào bị gọi nhầm sang tool mới (không regression). R12 vẫn FAIL như v3 (v4 không nhắm vào R12). Việc route đúng tới tool mới được đo ở group eval (B3). | case 0.95 · routing 1.00 · args 0.95 · multiturn 1.00 | case 0.95 · routing 1.00 · args 0.95 · multiturn 1.00 | [v4_B_base_openai_20261110T194355555650.json](../../starter_v0/runs/v4_B_base_openai_20261110T194355555650.json) |
 
 ### B2. Failure Analysis
 
 Lấy từ `results[*].result.failures` trong run JSON.
 
+Run v0: [`v0_B_base_openrouter_20261110T174226406183.json`](../../starter_v0/runs/v0_B_base_openrouter_20261110T174226406183.json) · artifact `v0+peb1c8179815b+te69bc53ed884` · 20/20 case đo được, `provider_error_cases = 0` → run hợp lệ. 13/20 PASS, 7 FAIL.
+
 | Case ID | Failure Type | Actual Tool Calls | What Failed | Fix |
-| --- | --- | --- | --- | --- |
-| `R08_out_of_scope` | unexpected_tool_call | `send(text=...)` | Ép gọi tool `send` khi người dùng hỏi toán tích phân | Thêm luật No-tool cho câu hỏi ngoài phạm vi trong `system_prompt.md` |
-| `R14_out_of_scope_coding` | unexpected_tool_call | `send(text=...)` | Ép gọi tool `send` khi người dùng yêu cầu viết code đệ quy | Thêm luật No-tool cho tác vụ coding trong `system_prompt.md` |
-| `R10_missing_handle` | missing_tool_call | `timeline(screenname='sama')` | Tự đoán tài khoản `sama` khi người dùng không nói rõ của ai | Loại bỏ chỉ dẫn đoán bừa, bắt buộc gọi `clarify(response_type='text')` |
-| `R11_missing_url` | missing_tool_call | `fetch(url='example.com/article')` | Tự bịa URL khi người dùng nói "bài viết này" | Bắt buộc gọi `clarify(response_type='text')` xin link |
-| `R12_confirm_before_send` | missing_tool_call | `send(text='Bản tin này')` | Tự ý gửi tin mà chưa hỏi xác nhận từ người dùng | Thiết lập boundary: Bắt buộc gọi `clarify(response_type='yes_no')` trước |
-| `R03_web_news_routing` | wrong_arg_value | `lookup(query='AI news', topic='news')` | Thừa chữ `news` trong query khi đã có `topic='news'` | Chuẩn hóa convention trích xuất từ khóa cốt lõi trong prompt / tool |
-| `R13_parallel_web_and_tweets` | wrong_arg_value | `lookup(query='AI news')` (thiếu topic) | Thiếu `topic='news'` và query thừa chữ `news` | Hướng dẫn định tuyến khi tìm tin tức hôm nay phải gán `topic='news'` |
+|---|---|---|---|---|
+| R03_web_news_routing | `wrong_tool` (observed: `wrong_arg_value`) | `lookup(query="AI news", topic="news", timeframe="day")` | Chọn đúng tool và đúng `topic`/`timeframe`, nhưng nhét chữ "news" vào `query` (expected `"AI"`). Description của `lookup` không nói `query` chỉ chứa từ khoá cốt lõi. | `tools.yaml`: mô tả `query` = chủ đề cốt lõi, không thêm "news/tin tức" vì đã có `topic=news`. **Kết quả:** đã PASS ở v1 dù chưa sửa `tools.yaml`. Có thể nhờ prompt mới bỏ câu ép gọi một tool và có routing rõ hơn. |
+| R08_out_of_scope | `out_of_scope` (observed: `unexpected_tool_call`) | `send(text="Nguyên hàm của x^2 là x³/3 + C ...")` | Câu toán ngoài phạm vi research nhưng agent vẫn gọi tool, lại còn gọi `send` không có xác nhận. Nguyên nhân: prompt ép "Always finish in a single step. Pick one tool". | `system_prompt.md`: bỏ câu ép gọi tool; thêm rule: yêu cầu ngoài phạm vi research → từ chối lịch sự, không gọi tool. **Kết quả:** PASS ở v1. |
+| R10_missing_handle | `missing_info` (observed: `missing_tool_call`) | `timeline(screenname="sama")` | Không rõ tài khoản nào nhưng agent tự đoán Sam Altman thay vì hỏi lại. Nguyên nhân: prompt dặn "pick a well-known account like Sam Altman". | `system_prompt.md`: bỏ chỉ dẫn đoán account; thêm rule: thiếu handle → `clarify(response_type="text")`. **Kết quả:** PASS ở v1. |
+| R11_missing_url | `missing_info` (observed: `missing_tool_call`) | `fetch(url="https://example.com/article")` | "Bài viết này" không có URL nhưng agent bịa URL. Nguyên nhân: prompt dặn "assume a likely URL and read it". | `system_prompt.md`: bỏ chỉ dẫn đoán URL; thêm rule: thiếu URL → `clarify`. **Kết quả:** PASS ở v1. |
+| R12_confirm_before_send | `wrong_boundary` (observed: `missing_tool_call`) | `send(text="Bản tin này")` | Gửi lên Telegram ngay, không xin xác nhận, nội dung còn rỗng nghĩa. Nguyên nhân: prompt dặn "just go ahead and do it"; description `send` không nêu boundary `confirmed`. | `system_prompt.md`: trước khi gửi phải `clarify(response_type="yes_no")`; `tools.yaml`: `send` chỉ gọi với `confirmed=true` sau khi user đồng ý. **Kết quả:** v1 vẫn FAIL. Agent không còn gửi ngay, nhưng gọi `clarify(response_type="text")` để hỏi nội dung, thay vì `yes_no` để xác nhận. Chuyển sang giả thuyết v2. |
+| R13_parallel_web_and_tweets | `wrong_tool` (observed: `wrong_arg_value`) | `lookup(query="AI news", timeframe="day")` + `social_search(query="AI", search_type="Latest")` | Routing đúng cả 2 tool, nhưng `lookup` thiếu `topic="news"` và `query` thừa "news". Không có convention "tin/tin tức/hôm nay → `topic=news`". | `tools.yaml`: nêu rõ convention `topic=news` cho tin tức, `timeframe=day` cho "hôm nay"; cùng fix `query` như R03. **Kết quả:** đã PASS ở v1 dù chưa sửa `tools.yaml` (cùng nhận định với R03). |
+| R14_out_of_scope_coding | `out_of_scope` (observed: `unexpected_tool_call`) | `send(text="...def fibonacci(n)...")` | Viết code ngoài phạm vi và dùng `send` để trả lời. Cùng nguyên nhân với R08. | Cùng fix với R08. **Kết quả:** PASS ở v1. |
+
+**Gom nhóm nguyên nhân (định hướng cho v1–v3):**
+
+1. **5/7 case FAIL** (R08, R10, R11, R12, R14) do các chỉ dẫn xấu cố ý trong `system_prompt.md`: đoán thay vì hỏi, gửi không cần xác nhận, ép gọi đúng một tool. Đây là giả thuyết mạnh nhất cho **v1**: sửa `system_prompt.md`.
+2. **2/7 case FAIL** (R03, R13) là lỗi convention args của `lookup` (`query` thừa "news", thiếu `topic=news`). Dự đoán ban đầu: cần sửa `tools.yaml`. **Thực tế:** cả hai đã PASS ở v1 nhờ sửa prompt, nên v2 không cần nhắm vào 2 case này.
+3. `multiturn_accuracy = 1.0`: cả 6 case multi-turn (M01–M06) đều PASS ở v0. Cần theo dõi để v1–v3 không làm tụt chỉ số này (regression).
+4. **Sau v1 còn R12.** Agent hiểu "bản tin này" là thiếu nội dung nên hỏi bằng `text` thay vì xin xác nhận `yes_no`. Giả thuyết cho **v2**: description `send`/`clarify` trong `tools.yaml` chưa nói rõ yêu cầu gửi/đăng luôn cần bước `clarify(response_type="yes_no")`, kể cả khi nội dung chưa rõ; viết rõ boundary này thì R12 PASS.
 
 ### B3. Team Eval Cases
 
@@ -180,10 +221,26 @@ Chi tiết đóng góp của từng thành viên nằm trong [TEAM.md](../../TEA
 
 ## 7. Hạn chế và hướng cải thiện — B6. Reflection
 
-- Fix nào thuộc `system_prompt.md`?
-- Fix nào thuộc `tools.yaml`?
-- Failure nào cần review thủ công thay vì chấm tự động?
-- Nếu có thêm một vòng, nhóm sẽ thử giả thuyết nào?
+- **Fix nào thuộc `system_prompt.md`?**
+  - Gần như mọi fix *đo được* trên base eval đều nằm ở prompt.
+  - v1 sửa 6 case: R08, R10, R11, R14 đúng như dự đoán. R03, R13 thì ngoài dự đoán: B2 dự đoán hai case này cần sửa convention args trong `tools.yaml`, nhưng chúng PASS ngay ở v1 dù yaml chưa đổi. Có thể do prompt mới bỏ câu ép "pick one tool / single step" và có routing rõ hơn.
+  - v3 sửa M06 nhờ mục *Follow-up turns*.
+  - Kết luận: các rule về **hành vi và chính sách** (hỏi lại khi thiếu, xác nhận trước hành động, từ chối ngoài phạm vi, lượt sau ghi đè lượt trước) nên đặt trong prompt.
+- **Fix nào thuộc `tools.yaml`?**
+  - Convention của từng argument: handle không `@`, `topic`/`timeframe` của `lookup`, `search_type`, `confirmed`.
+  - Ranh giới "khi nào không dùng" giữa các tool gần nhau.
+  - Khai báo tool mới.
+  - Trên bộ base, v2 (chỉ sửa yaml) **không làm case nào chuyển sang PASS**: R12 vẫn FAIL. v2 còn kéo theo regression ở M06 (gọi thừa `social_search`), có thể vì description mới của `social_search` khớp quá sát với lượt đầu của M06. Khi yaml và prompt nói khác nhau (v2: yaml đòi `yes_no`, prompt cũ đòi "show the exact text"), model nghe theo prompt.
+  - v4 cho thấy mặt tích cực của yaml: thêm 4 tool với description có "KHÔNG dùng khi..." không làm base tụt (0.95 → 0.95) và không case base nào bị gọi nhầm sang tool mới.
+- **Failure nào cần review thủ công thay vì chấm tự động?**
+  - **R12 (FAIL ở cả v1–v4).** "Đăng bản tin này lên Telegram" vừa thiếu nội dung vừa cần xác nhận. Agent luôn gọi `clarify(response_type="text")` để hỏi nội dung, và **không lần nào gọi `send`**. Về an toàn, hành vi này vẫn đúng boundary (không gửi khi chưa xác nhận). Eval chỉ chấm `response_type` nên tính là FAIL. Cần người đọc để phân biệt "hỏi sai kiểu" với "gửi không xác nhận".
+  - **Case out-of-scope (R08, R14).** Eval chỉ kiểm tra *không gọi tool*, không kiểm tra câu trả lời text có thật sự từ chối hay lại giải luôn bài toán / viết luôn code.
+  - **Độ ổn định.** Mỗi version chỉ chạy 1 lần. Regression M06 ở v2 có thể một phần do `gpt-4o-mini` không hoàn toàn ổn định giữa các lần chạy, cần chạy lặp để chắc chắn.
+  - **Tool mới.** Bộ base không có case nào cho 4 tool mới, nên route tới tool mới phải đo bằng group eval và đọc transcript. Chất lượng output (digest của `format`, nội dung tóm tắt) cũng không được chấm tự động.
+- **Nếu có thêm một vòng, nhóm sẽ thử giả thuyết nào?**
+  1. **v5 cho R12:** model ưu tiên rule "thiếu info → `clarify(text)`" hơn rule xác nhận. Thêm ngoại lệ ngay trong mục *Ask instead of guessing* ("trừ yêu cầu gửi/đăng: luôn `yes_no`") hoặc 1 ví dụ few-shot, thì R12 PASS.
+  2. **Đo phương sai:** chạy mỗi version 3 lần để biết chênh lệch 0.05 (1 case) có phải là nhiễu hay không.
+  3. **Viết thêm case bẫy cho các cặp tool dễ nhầm** (`wiki_summary` / `lookup`, `hn_search` / `social_search`, `github_repo` / `pypi_package`) để kiểm tra ranh giới trong description có thực sự hiệu quả.
 
 ## 8. Tài liệu tham khảo
 
