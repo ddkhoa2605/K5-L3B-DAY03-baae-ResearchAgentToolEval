@@ -71,6 +71,7 @@
     - Chạy `pytest` (contract test) sau mỗi lần sửa yaml.
     - So sánh từng case giữa hai version để phát hiện regression thay vì chỉ nhìn tổng điểm.
   - Ví dụ AI/mình làm sai và đã sửa:
+    - Lần chạy v1 đầu tiên, prompt mới được dán thêm vào bên dưới prompt starter thay vì thay thế, nên các chỉ dẫn xấu cũ vẫn còn. Kết quả lần đó chỉ đạt 0.80, R10 vẫn tự đoán `timeline(screenname="sama")`. Phát hiện bằng cách đọc `actual_tool_calls` của case FAIL trong run JSON và mở lại `system_prompt.md`. Đã xoá phần prompt cũ và chạy lại v1 (0.95, run `v1_B_base_openai_20261110T182945282365.json`); run lỗi không được ghi vào `version_log.csv`. Cùng lúc đó một dòng routing `social_search` bị cắt cụt khi dán và không được phát hiện ngay; dòng này được sửa ở v3. Bài học: luôn kiểm tra nội dung file và hash trước khi chạy eval.
 
 ## 5. Tự đánh giá
 
@@ -86,4 +87,4 @@
   - Model ưu tiên system prompt hơn tool description khi hai bên mâu thuẫn.
   - Rule hành vi đặt trong prompt hiệu quả hơn trên bộ eval này.
   - Cần đọc từng case chứ không chỉ nhìn `case_accuracy`.
-- **Tự chấm phần mình phụ trách (C1–C3):** 10/10
+- **Tự chấm phần mình phụ trách (C1–C3):** 45/45 (C1: 10/10 · C2: 15/15 · C3: 20/20)
