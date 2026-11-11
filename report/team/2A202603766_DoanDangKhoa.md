@@ -14,6 +14,8 @@
 - Sửa `starter_v0/artifacts/system_prompt.md` và `starter_v0/artifacts/tools.yaml` qua các version v1–v4, mỗi version một giả thuyết (CP2).
 - Ghi `starter_v0/artifacts/version_log.csv`; điền B1, B2, mục 3 (Giải pháp), mục 7 (B6. Reflection) trong `report/team/group_report.md`.
 - Khai báo 4 tool mới của nhóm trong `tools.yaml` và thêm rule routing tương ứng (v4).
+- Bonus Small Local Model Challenge: chạy 2 model local, 2 vòng tối ưu, kiểm tra ngược trên cloud; điền B5, B7.
+- Bonus Test challenge: sửa 2 bug trong tool có sẵn `send` kèm regression test.
 
 ## 3. Đóng góp cụ thể
 
@@ -31,6 +33,17 @@
 - Viết bảng B2 cho 7 case FAIL của v0 từ `actual_tool_calls`, `failures`, `observed_mismatch` trong run JSON.
 - Ghi chú chỗ nhãn `failure_type` của case (ví dụ R03 là `wrong_tool`) khác với lỗi thực tế quan sát được (`wrong_arg_value`).
 - Sau v1, cập nhật B2 bằng kết quả thực tế để so với dự đoán ban đầu.
+
+**Bonus: Small Local Model Challenge** (Ollama; prompt/tools riêng trong `artifacts/system_prompt_local.md`, `artifacts/tools_local.yaml`, không đổi bản v4 đang nộp):
+
+| Version | Giả thuyết | qwen2.5:3b | llama3.2:3b | Kết quả |
+|---|---|---:|---:|---|
+| v4 (baseline local) | Giữ nguyên v4 để đo khoảng cách với cloud (0.95) | 0.55 | 0.30 | Model nhỏ bỏ qua convention args, bỏ qua `clarify`, llama gọi tool không liên quan |
+| v5-local | Bỏ 8 tool không cần (14 → 6) thì bớt gọi sai tool | 0.55 | 0.25 | **Giả thuyết sai**: llama chuyển sang tool sai khác và hỏi lại quá đà |
+| v6-local | Prompt ngắn + 10 ví dụ few-shot (chủ đề khác eval) | 0.70 | 0.40 | Đúng: +0.15 cho cả hai model; tác dụng phụ: qwen chép URL ví dụ ở R11 |
+| v6-local-cloud | Prompt local không làm tụt điểm cloud | 0.95 (gpt-4o-mini) | — | Bằng v4; R12 PASS lần đầu trên cloud, R03 FAIL do gọi thừa `social_search` |
+
+**Bonus: Test challenge.** Run của llama cho thấy `send(confirmed="false")` vượt qua guardrail (chuỗi không rỗng được coi là đúng) và thông báo lỗi làm lộ bot token. Đã thu hồi token, che token trong 2 run, sửa `tools/send/tool.py` (chỉ `True` thật mới là xác nhận; che token trong lỗi) và viết 3 regression test; 2 test FAIL trên code cũ, PASS sau khi sửa.
 
 **Phối hợp nhóm:**
 - Cùng nhau bàn luận, lựa chọn 1 tool phù hợp để cả nhóm cùng hướng đến.
@@ -51,14 +64,18 @@
   - `99d326e` (committer, tác giả là Nguyễn Văn Minh): đưa 4 tool + 12 test vào `main`
   - `ca83a7e` khôi phục `system_prompt.md`, `tools.yaml`, `version_log.csv` về v4 và B1/B2; thêm mục 3, 7 của group report và báo cáo cá nhân
   - `090ebfb` điền `TEAM.md` (thông tin repo, vai trò, mục cá nhân) và sửa định dạng bảng/heading
+  - `34ddccd` bonus Small Local Model: 7 run local/cloud, prompt/tools local, 7 dòng `version_log`, B5, B7
+  - `5813dc1` che bot token trong 2 run llama, ghi sự cố vào mục 5
+  - `eb8cbaf` sửa guardrail `send` + 3 regression test, điền Test challenge ở B5
 - **Run JSON** (`starter_v0/runs/`), tất cả có `provider_error_cases = 0`, `measured_cases = 20`:
   - `v0_B_base_openrouter_20261110T174226406183.json`
   - `v1_B_base_openai_20261110T182945282365.json`
   - `v2_B_base_openai_20261110T190148454639.json`
   - `v3_B_base_openai_20261110T191415319980.json`
   - `v4_B_base_openai_20261110T194355555650.json`
-- **Artifact:** `starter_v0/artifacts/system_prompt.md`, `starter_v0/artifacts/tools.yaml`, `starter_v0/artifacts/version_log.csv`.
-- **Report:** `report/team/group_report.md`, các mục 1, 3, B1, B2, 7.
+  - Bonus: `v4-qwen3b_…`, `v4-llama3b_…`, `v5-local-qwen3b_…`, `v5-local-llama3b_…`, `v6-local-qwen3b_…`, `v6-local-llama3b_…`, `v6-local-cloud_…` (tên đầy đủ ở B7)
+- **Artifact:** `starter_v0/artifacts/system_prompt.md`, `starter_v0/artifacts/tools.yaml`, `starter_v0/artifacts/version_log.csv`; bonus: `starter_v0/artifacts/system_prompt_local.md`, `starter_v0/artifacts/tools_local.yaml`, `starter_v0/tools/send/tool.py`, `starter_v0/tests/test_tools_todo.py`.
+- **Report:** `report/team/group_report.md`, các mục 1, 3, 5, 7, 8, B1, B2, B5, B7.
 - **AI/công cụ đã dùng và cách tự kiểm tra kết quả:**
   - Dùng **Claude Code (Claude)** để:
     - đọc và tóm tắt run JSON, liệt kê case FAIL kèm `actual_tool_calls`;
