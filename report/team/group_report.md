@@ -177,7 +177,7 @@ Chỉ điền nếu nhóm làm bonus (ghi riêng, tối đa 10 điểm). Tool c�
 
 | Bonus | Evidence File | What Worked | Risk / Guardrail |
 |---|---|---|---|
-| Small Local Model | xem B7 |  |  |
+| Small Local Model | xem B7; `starter_v0/artifacts/system_prompt_local.md`, `starter_v0/artifacts/tools_local.yaml`, 7 run `starter_v0/runs/v4-*3b_*`, `v5-local-*`, `v6-local-*` | 2 model local (`qwen2.5:3b`, `llama3.2:3b`) chạy base eval với v4; 2 vòng tối ưu có log (v5-local, v6-local); kiểm tra ngược trên cloud. Prompt ngắn + few-shot nâng qwen 0.55 → 0.70, llama 0.30 → 0.40 (thấp nhất 0.25 ở v5) | Bản local dùng file riêng, không đổi `system_prompt.md`/`tools.yaml` v4 đang nộp. Model nhỏ vẫn có lỗi an toàn: llama gọi `send` không xác nhận ở R12, R14 |
 | Hơn 3 tool mới (≥ 4) | `starter_v0/tools/` (`github_repo`, `pypi_package`, `wiki_summary`, `hn_search`), `starter_v0/tests/test_tools_todo.py` | Viết đủ 4 tool mới hoàn chỉnh tích hợp live API, mỗi tool có 3 unit test (tổng 12 test) đạt 0 failed, có eval case route tới | Validate cú pháp và xử lý mã lỗi HTTP 404, rate limit không làm gián đoạn luồng agent |
 | `send` gửi thật lên Telegram sau xác nhận | [`v4_openai_20261111T091228314936.transcript.json`](../../starter_v0/transcripts/v4_openai_20261111T091228314936.transcript.json) | Luồng 2 bước an toàn: Agent dùng `clarify(response_type='yes_no')` xin xác nhận, sau khi người dùng đồng ý mới gọi `send(confirmed=true)` trả về `status: sent` lên Telegram channel thật của nhóm. | Ngăn chặn hành vi tự ý phát tán thông tin ra môi trường bên ngoài (side effect) khi chưa có sự xác nhận rõ ràng của người dùng. |
 | Test challenge (0 skipped / regression test) | `pytest` output |  |  |
@@ -190,25 +190,39 @@ Chỉ điền nếu nhóm làm bonus này.
 
 | Version | Model (provider) | Prompt/Tools | case_accuracy | tool_routing | argument | multiturn | Run File |
 |---|---|---|---|---|---|---|---|
-| v3 | (cloud) | v3 |  |  |  |  |  |
-| v3-<model> | (ollama) | v3 |  |  |  |  |  |
-| v3-<model> | (ollama) | v3 |  |  |  |  |  |
-| v4-local |  |  |  |  |  |  |  |
-| v5-local |  |  |  |  |  |  |  |
+Bản tốt nhất của nhóm trên cloud là **v4** (không có v3 riêng cho bonus), nên baseline local chạy bằng prompt/tools v4 nguyên trạng. Model local chạy qua Ollama 0.31.1 trên laptop 15 GB RAM (README khuyên dùng model 3B khi RAM < 16 GB). Prompt/tools cho local nằm ở file riêng (`artifacts/system_prompt_local.md`, `artifacts/tools_local.yaml`), **không thay đổi** bản v4 đang nộp. Tất cả run dưới đây có `provider_error_cases = 0`, `measured_cases = 20/20`.
 
-Lỗi đặc thù của model nhỏ (đếm từ run JSON):
+| Version | Model (provider) | Prompt/Tools | case_accuracy | tool_routing | argument | multiturn | Run File |
+|---|---|---|---|---|---|---|---|
+| v4 | `gpt-4o-mini` (cloud, openai) | v4 / v4 (14 tool) | 0.95 | 1.00 | 0.95 | 1.00 | [`v4_B_base_openai_20261110T194355555650.json`](../../starter_v0/runs/v4_B_base_openai_20261110T194355555650.json) |
+| v4-qwen3b | `qwen2.5:3b` (ollama) | v4 / v4 | 0.55 | 0.80 | 0.55 | 0.33 | [`v4-qwen3b_B_base_ollama_20261111T101207679824.json`](../../starter_v0/runs/v4-qwen3b_B_base_ollama_20261111T101207679824.json) |
+| v4-llama3b | `llama3.2:3b` (ollama) | v4 / v4 | 0.30 | 0.55 | 0.30 | 0.33 | [`v4-llama3b_B_base_ollama_20261111T102017342093.json`](../../starter_v0/runs/v4-llama3b_B_base_ollama_20261111T102017342093.json) |
+| v5-local-qwen3b | `qwen2.5:3b` (ollama) | v4 / `tools_local.yaml` (6 tool) | 0.55 | 0.80 | 0.55 | 0.50 | [`v5-local-qwen3b_B_base_ollama_20261111T102319755287.json`](../../starter_v0/runs/v5-local-qwen3b_B_base_ollama_20261111T102319755287.json) |
+| v5-local-llama3b | `llama3.2:3b` (ollama) | v4 / `tools_local.yaml` (6 tool) | 0.25 | 0.45 | 0.25 | 0.00 | [`v5-local-llama3b_B_base_ollama_20261111T102605903517.json`](../../starter_v0/runs/v5-local-llama3b_B_base_ollama_20261111T102605903517.json) |
+| v6-local-qwen3b | `qwen2.5:3b` (ollama) | `system_prompt_local.md` / `tools_local.yaml` | **0.70** | 0.85 | 0.70 | 0.67 | [`v6-local-qwen3b_B_base_ollama_20261111T102836595435.json`](../../starter_v0/runs/v6-local-qwen3b_B_base_ollama_20261111T102836595435.json) |
+| v6-local-llama3b | `llama3.2:3b` (ollama) | `system_prompt_local.md` / `tools_local.yaml` | **0.40** | 0.50 | 0.40 | 0.17 | [`v6-local-llama3b_B_base_ollama_20261111T103135904506.json`](../../starter_v0/runs/v6-local-llama3b_B_base_ollama_20261111T103135904506.json) |
+| v6-local-cloud | `gpt-4o-mini` (cloud, openai) | `system_prompt_local.md` / `tools_local.yaml` | 0.95 | 0.95 | 0.95 | 1.00 | [`v6-local-cloud_B_base_openai_20261111T103314932548.json`](../../starter_v0/runs/v6-local-cloud_B_base_openai_20261111T103314932548.json) |
+
+Hai vòng tối ưu, mỗi vòng một giả thuyết:
+
+- **v5-local (`tools_local.yaml`):** giả thuyết: 14 tool / 13 KB khai báo làm model 3B bị nhiễu; chỉ giữ 6 tool mà `eval_base` dùng (copy nguyên văn từ v4, prompt giữ v4) thì giảm gọi sai tool. **Kết quả: không đúng.** qwen giữ 0.55; llama 0.30 → 0.25 và multiturn 0.33 → 0.00: không còn gọi `pypi_package` nhưng chuyển sang gọi `lookup`/`send`, và hỏi lại quá đà trong multi-turn.
+- **v6-local (`system_prompt_local.md`):** giả thuyết: rule dài, trừu tượng của prompt v4 bị model 3B áp dụng sai; prompt ngắn (6 rule đánh số) + 10 ví dụ few-shot dạng câu hỏi → tool call (chủ đề/người khác với eval case) thì gọi đúng convention args và `clarify`. Tools giữ như v5-local. **Kết quả: đúng.** qwen 0.55 → 0.70 (R03, R06, M02 đúng `topic`/`timeframe`; R12 dùng `yes_no`; nhưng R01 tụt do map `sama` thành `samalta`), llama 0.25 → 0.40 (R04, R11, R13, M04 chuyển sang PASS; R09 tụt do gọi `clarify` cho câu hỏi về khả năng của agent).
+
+Lỗi đặc thù của model nhỏ (đếm trên các case FAIL trong run JSON, dạng `v4 → v5 → v6`; q = qwen2.5:3b, l = llama3.2:3b):
 
 | Failure Pattern | Count | Example Case | Fix Tried | Helped? |
 |---|---|---|---|---|
-| wrong / hallucinated tool |  |  |  |  |
-| invalid JSON args (`_invalid_json_arguments`) |  |  |  |  |
-| no tool call / answered directly |  |  |  |  |
-| missed `clarify` |  |  |  |  |
-| repeated / unnecessary calls |  |  |  |  |
+| wrong / hallucinated tool | q 2 → 3 → 3; l 6 → 7 → 7 | `v4-llama3b` R14: `pypi_package(package="fibonacci")` cho yêu cầu viết code; M06 (cả hai model): vẫn `social_search` sau khi user nói "Bỏ Twitter", qwen còn truyền param không tồn tại `screenname` vào `social_search` | v5: bỏ 8 tool không cần; v6: few-shot có ví dụ đổi nguồn | Không. Bỏ tool chỉ làm llama đổi sang tool sai khác (`lookup`, `send`); M06 vẫn FAIL ở v6 |
+| invalid JSON args (`_invalid_json_arguments`) | 0 ở mọi run | — Nhưng `v5-local-llama3b` R04, R11 viết tool call thành **text JSON** (`{"name": "format", ...}`) thay vì tool call thật | v6: prompt ngắn | Có: v6 không còn ca này |
+| no tool call / answered directly | q 2 → 1 → 0; l 1 → 2 → 0 | `v4-qwen3b` R11 trả lời "Tôi cần biết URL..." bằng text thay vì gọi `clarify`; M04 không gọi `fetch` dù đã có URL | v6: few-shot multi-turn có URL ở lượt 2 | Có: còn 0 ở cả hai model |
+| missed `clarify` | q 2 → 3 → 2; l 3 → 3 → 2 | R10 (cả hai model, mọi version): `timeline(screenname="")` / `social_search(query="")` với giá trị rỗng thay vì hỏi tài khoản; `v6-local-qwen3b` R11 gọi `fetch(url="https://example.org/post")`, **chép URL trong ví dụ few-shot** | v6: rule 1 + ví dụ "Lấy vài tweet gần đây → clarify" | Một phần: giảm 1 ca mỗi model nhưng R10 chưa sửa được; few-shot gây ra lỗi mới (chép giá trị ví dụ) |
+| repeated / unnecessary calls | q 0 → 0 → 0; l 1 → 5 → 4 (gọi `clarify` thừa) + 2 → 2 → 3 (gọi tool khi phải từ chối) | `v6-local-llama3b` M05: hỏi lại "Bạn muốn xem 10 tweet mới nhất của Elon Musk?" dù đã đủ thông tin; R14: gọi `send` cho yêu cầu viết code | v6: rule 4 "không hỏi lại thông tin đã có", rule 3 "toán/code không gọi tool" | Không với llama. Không có ca gọi lặp cùng một tool |
 
-- Cái gì giúp model nhỏ gọi tool đúng hơn nhất? Bằng chứng?
-- Bản prompt tối ưu cho local chạy trên model cloud thì sao?
-- Khi nào nhóm sẽ chọn model local thay vì cloud cho agent này?
+Ngoài ra: `v4-llama3b` truyền số dạng chuỗi (`limit: "10"`) ở 7 case FAIL; v6 (rule 5 "Numbers are integers") còn 2 case, R05 vẫn FAIL vì `"10"`.
+
+- **Cái gì giúp model nhỏ gọi tool đúng hơn nhất? Bằng chứng?** Prompt ngắn với **ví dụ few-shot cụ thể** (câu hỏi → tool call kèm args), không phải bớt số tool. Bằng chứng: v6-local tăng +0.15 trên cả hai model (qwen 0.55 → 0.70, llama 0.25 → 0.40), trong khi v5-local (bỏ 8 tool) giữ nguyên hoặc làm giảm (qwen 0.55 → 0.55, llama 0.30 → 0.25). Few-shot sửa đúng nhóm lỗi convention args (`topic="news"`, `timeframe="day"`) mà prompt rule dài không sửa được. Giới hạn: few-shot có thể bị **chép nguyên giá trị** (qwen R11 dùng URL ví dụ), nên ví dụ cần dùng giá trị không thể nhầm là dữ liệu thật; và qwen R12 PASS tự động (`yes_no`) nhưng câu hỏi sai ngữ cảnh ("Bạn đã gửi link bài báo đó chưa?"), cần review thủ công.
+- **Bản prompt tối ưu cho local chạy trên model cloud thì sao?** `v6-local-cloud` vẫn đạt 0.95, bằng v4: không tụt điểm. Kiểu lỗi đổi: **R12 PASS lần đầu tiên** trên cloud (`clarify(question="Xác nhận gửi lên Telegram?", response_type="yes_no")`), case mà v1–v4 không sửa được; đổi lại R03 FAIL vì gọi thừa `social_search` bên cạnh `lookup`, có thể do rule "Web AND Twitter → call both". Như vậy có thể dùng một prompt cho cả hai, nhưng nhóm vẫn nộp v4 làm bản chính vì v6-local mới chạy 1 lần và chưa có run group eval.
+- **Khi nào nhóm sẽ chọn model local thay vì cloud cho agent này?** Với chất lượng hiện tại (tốt nhất 0.70 so với 0.95), chỉ chọn local khi dữ liệu không được rời máy (ví dụ tra `policy` nội bộ), khi cần chạy offline hoặc không có ngân sách API, và chỉ cho tác vụ đọc/tra cứu. Không dùng model 3B cho tool có side effect như `send`: `llama3.2:3b` gọi `send` khi chưa xác nhận ở R12 và R14. Nếu dùng local, `qwen2.5:3b` rõ ràng tốt hơn `llama3.2:3b` ở mọi chỉ số.
 
 ## 5. Khó khăn và cách xử lý
 
