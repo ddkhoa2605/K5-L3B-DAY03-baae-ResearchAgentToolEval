@@ -224,3 +224,50 @@ def test_hn_search_clamps_bad_limits(fake_http) -> None:
 
     TOOL_FUNCTIONS["hn_search"](query="AI", limit=999)
     assert calls[1]["params"]["hitsPerPage"] == 20
+
+# ---------------- send: regression tests (bug found by Small Local Model Challenge) ----------------
+# llama3.2:3b called send(confirmed="false"). A non-empty string is truthy, so the old
+# `if not confirmed` guardrail let it through, hit Telegram, and the HTTPError message
+# (which contains the full URL with the bot token) was written into the run JSON.
+
+FAKE_TOKEN = "123456789:AAFakeTokenForUnitTestsOnly_xyz"
+
+
+def test_send_string_false_is_not_a_confirmation_and_makes_no_request(monkeypatch, fake_http) -> None:
+    monkeypatch.setenv("TELEGRAM_BOT_TOKEN", FAKE_TOKEN)
+    monkeypatch.setenv("TELEGRAM_CHAT_ID", "@test_channel")
+    calls = fake_http(FakeResponse({"ok": True}))
+
+    result = TOOL_FUNCTIONS["send"](text="Bản tin", confirmed="false")
+
+    assert result["status"] == "needs_confirmation"
+    assert calls == []
+
+
+def test_send_real_confirmation_still_posts_to_telegram(monkeypatch, fake_http) -> None:
+    monkeypatch.setenv("TELEGRAM_BOT_TOKEN", FAKE_TOKEN)
+    monkeypatch.setenv("TELEGRAM_CHAT_ID", "@test_channel")
+    calls = fake_http(FakeResponse({"ok": True}))
+
+    result = TOOL_FUNCTIONS["send"](text="Bản tin", confirmed=True)
+
+    assert result["status"] == "sent"
+    assert calls[0]["method"] == "POST"
+    assert calls[0]["json"]["chat_id"] == "@test_channel"
+    assert calls[0]["json"]["text"] == "Bản tin"
+
+
+def test_send_http_error_message_does_not_leak_bot_token(monkeypatch, fake_http) -> None:
+    import requests
+
+    monkeypatch.setenv("TELEGRAM_BOT_TOKEN", FAKE_TOKEN)
+    monkeypatch.setenv("TELEGRAM_CHAT_ID", "@test_channel")
+    fake_http(requests.HTTPError(
+        f"400 Client Error: Bad Request for url: https://api.telegram.org/bot{FAKE_TOKEN}/sendMessage"
+    ))
+
+    result = TOOL_FUNCTIONS["send"](text="Bản tin", confirmed=True)
+
+    assert result["error"] == "HTTPError"
+    assert FAKE_TOKEN not in result["message"]
+    assert "bot<REDACTED>/sendMessage" in result["message"]
