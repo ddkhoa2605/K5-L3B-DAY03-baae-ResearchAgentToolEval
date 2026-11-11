@@ -94,24 +94,29 @@ Sao chép mục dưới đây cho từng thành viên.
 
 ### Phần việc phụ trách
 
-- Thiết kế & thực thi bộ 10 ca kiểm thử nhóm `starter_v0/data/eval_group.json` (5 single-turn + 5 multi-turn) (C5).
-- Xây dựng ứng dụng Streamlit trong `starter_v0/app.py` hiển thị chi tiết tool calls và tham số (C6).
-- Đồng phụ trách tối ưu hóa Prompt và Tool Declarations qua các vòng lặp v0 → v1 → v2 → v3 (C1, C2, C3).
-- Hoàn thiện tài liệu Báo cáo Nhóm `report/team/group_report.md` và thiết kế `report/team/poster.html` (C7).
-- Cấu hình và kiểm thử tích hợp gửi tin thật lên Telegram Channel sau xác nhận (Bonus).
+- Thiết kế & thực thi bộ 10 ca kiểm thử nhóm `starter_v0/data/eval_group.json` (5 single-turn + 5 multi-turn) bao quát các bẫy routing tool mới, tham số thời gian, đổi nguồn và guardrail (C5 — CP4).
+- Xây dựng ứng dụng Streamlit trong `starter_v0/app.py`, tích hợp expander hiển thị minh bạch tool calls và tham số JSON; cấu hình tunnel Cloudflare và thực hiện Live chat đa lượt ghi transcript (C6 — CP5).
+- Đồng biên soạn Báo cáo Nhóm `report/team/group_report.md` (Phần A, B3, B4, B5) và thiết kế toàn diện Poster HTML `report/team/poster.html` (C7 — CP5).
+- Cấu hình và kiểm thử tích hợp gửi tin thật lên kênh Telegram sau luồng xác nhận an toàn 2 bước (Bonus).
 
 ### Đóng góp cụ thể
 
-- Phân tích 7 ca lỗi baseline v0; thiết kế các quy tắc no-tool, clarify và ranh giới guardrail an toàn trong `system_prompt.md`.
-- Chuẩn hóa toàn bộ schema `tools.yaml` với mô tả rõ ràng ranh giới khi nào dùng/không dùng và ràng buộc tham số.
-- Thiết kế 10 ca eval nhóm chất lượng cao bẫy các lỗi phổ biến (tính toán, đa lượt chuyển nguồn, từ chối ngoài phạm vi, hỏi xác nhận gửi tin).
-- Viết ứng dụng Streamlit trực quan, minh bạch toàn bộ các lượt gọi công cụ và tham số cho buổi Showdown.
+- Thiết kế 10 ca eval nhóm độc lập, chất lượng cao trong `starter_v0/data/eval_group.json` (5 single + 5 multi): bẫy routing 2 tool mới `github_repo` (G01) và `pypi_package` (G06), bẫy `timeframe='month'` (G02), bẫy `search_type='Top'` (G03), bẫy thiếu URL (G04), từ chối ngoài phạm vi (G05), ánh xạ Yann LeCun (G07), đổi timeframe đa lượt (G08), guardrail Telegram (G09), chuyển nguồn triệt để từ Twitter sang web (G10).
+- Thực thi chạy group eval với artifact version v4 của nhóm đạt 9/10 PASS (90.0%), điền bảng B3 trung thực theo run log.
+- Phát triển ứng dụng Streamlit `starter_v0/app.py`, hiển thị chi tiết các lượt `tool_calls` và `args` qua `st.expander`, không che giấu lỗi.
+- Thực hiện phiên Live chat 4 lượt hoàn chỉnh với `chat.py` trên version v4, kiểm chứng hành vi hỏi lại URL và guardrail xin xác nhận trước khi gửi tin (B4).
+- Thiết lập kênh Telegram Bot và thực hiện phiên kiểm thử live gửi tin thật sau khi xác nhận có/không, lưu vết transcript minh chứng đầy đủ.
+- Thiết kế Poster HTML 1 trang chuẩn Material Design tại `report/team/poster.html` phục vụ trình diễn tại vòng Showdown.
 
 ### Bằng chứng
 
-- Báo cáo cá nhân chi tiết: `report/team/2A202603743_HoAnLoc.md`.
-- Code & cấu hình: `starter_v0/data/eval_group.json`, `starter_v0/app.py`, `starter_v0/artifacts/system_prompt.md`, `starter_v0/artifacts/tools.yaml`, `starter_v0/artifacts/version_log.csv`.
-- Runs & Transcripts: `starter_v0/runs/v3_B_base_openai_20261110T175327809168.json`, `starter_v0/runs/v3_B_group_openai_20261110T183722324187.json`, `starter_v0/transcripts/v3_openai_20261110T182210209855.transcript.json`, `starter_v0/transcripts/v3_openai_20261110T205941151454.transcript.json` (Bonus Telegram).
+- **Báo cáo cá nhân chi tiết:** `report/team/2A202603743_HoAnLoc.md`.
+- **Nhánh làm việc & PR:** Nhánh `2A202603743_HoAnLoc` trên repo nhóm (PR #4 và PR hoàn thiện).
+- **Code & Cấu hình:** `starter_v0/data/eval_group.json`, `starter_v0/app.py`, `starter_v0/requirements.txt`, `report/team/poster.html`, `report/team/group_report.md` (Phần A, B3, B4, B5).
+- **Runs & Transcripts thật:**
+  - Run Group v4: `starter_v0/runs/v4_B_group_openai_20261111T091027249801.json` (9/10 PASS, artifact `v4+p111693171221+tc36c98bfd981`).
+  - Transcript Live Chat v4: `starter_v0/transcripts/v4_openai_20261111T091113007111.transcript.json`.
+  - Transcript Telegram Bonus v4: `starter_v0/transcripts/v4_openai_20261111T091228314936.transcript.json`.
 
 ## NguyenVanMinh-2A202603771
 

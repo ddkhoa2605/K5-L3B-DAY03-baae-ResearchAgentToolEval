@@ -157,7 +157,7 @@ Chạy tương tác thực tế với `chat.py` bằng `v4`: [`v4_openai_2026111
 | Turn | User Request | Tool Calls | Version Evidence | Outcome |
 | :---: | --- | --- | --- | --- |
 | 1 | "Tin AI hôm nay có gì nổi bật?" | `lookup(query='AI', timeframe='day', topic='news')` | `v4` (`v4_openai_20261111T091113007111.transcript.json`) | Agent tìm tin mới trong ngày và trả lời tóm tắt 5 bài viết kèm nguồn dẫn uy tín (Argonne, Stanford HAI, WIRED...). |
-| 2 | "Tóm tắt bài viết này giúp mình" | `clarify(question='Bạn vui lòng cung cấp URL của bài viết mà bạn muốn tóm tắt.', response_type='text')` | `v4` (`v4_openai_20261111T091113007111.transcript.json`) | Yêu cầu thiếu URL: Agent nhận diện đúng trường hợp thiếu thông tin bắt buộc, không bịa link mà gọi `clarify` để hỏi URL. |
+| 2 | "Tóm tắt bài viết này giúp mình" | (Không gọi tool) | `v4` (`v4_openai_20261111T091113007111.transcript.json`) | Yêu cầu thiếu URL: Agent không gọi tool và không bịa link, trực tiếp trả lời bằng text yêu cầu người dùng cung cấp URL bài viết. |
 | 3 | "https://openai.com/index/hello-gpt-4o" | `fetch(url='https://openai.com/index/hello-gpt-4o')` | `v4` (`v4_openai_20261111T091113007111.transcript.json`) | Đọc nội dung URL bài viết được bổ sung và tóm tắt các tính năng đa phương thức của GPT-4o. |
 | 4 | "Đăng bản tin này lên kênh Telegram giúp mình" | `clarify(question='Bạn có muốn đăng nội dung tóm tắt về GPT-4o lên kênh Telegram không?', response_type='yes_no')` | `v4` (`v4_openai_20261111T091113007111.transcript.json`) | Guardrail an toàn kích hoạt: Agent không tự ý gọi `send` phát tán tin mà dừng lại xin xác nhận rõ ràng của người dùng. |
 
@@ -179,7 +179,7 @@ Chỉ điền nếu nhóm làm bonus (ghi riêng, tối đa 10 điểm). Tool c�
 |---|---|---|---|
 | Small Local Model | xem B7 |  |  |
 | Hơn 3 tool mới (≥ 4) | `starter_v0/tools/` (`github_repo`, `pypi_package`, `wiki_summary`, `hn_search`), `starter_v0/tests/test_tools_todo.py` | Viết đủ 4 tool mới hoàn chỉnh tích hợp live API, mỗi tool có 3 unit test (tổng 12 test) đạt 0 failed, có eval case route tới | Validate cú pháp và xử lý mã lỗi HTTP 404, rate limit không làm gián đoạn luồng agent |
-| `send` gửi thật lên Telegram sau xác nhận | [`v4_openai_20261111T091228314936.transcript.json`](../../starter_v0/transcripts/v4_openai_20261111T091228314936.transcript.json) (bản v4 mới nhất) và [`v3_openai_20261110T205941151454.transcript.json`](../../starter_v0/transcripts/v3_openai_20261110T205941151454.transcript.json) (bản live test ban đầu) | Luồng 2 bước an toàn: Agent dùng `clarify(response_type='yes_no')` xin xác nhận, sau khi người dùng đồng ý mới gọi `send(confirmed=true)` trả về `status: sent` lên Telegram channel thật của nhóm. | Ngăn chặn hành vi tự ý phát tán thông tin ra môi trường bên ngoài (side effect) khi chưa có sự xác nhận rõ ràng của người dùng. |
+| `send` gửi thật lên Telegram sau xác nhận | [`v4_openai_20261111T091228314936.transcript.json`](../../starter_v0/transcripts/v4_openai_20261111T091228314936.transcript.json) | Luồng 2 bước an toàn: Agent dùng `clarify(response_type='yes_no')` xin xác nhận, sau khi người dùng đồng ý mới gọi `send(confirmed=true)` trả về `status: sent` lên Telegram channel thật của nhóm. | Ngăn chặn hành vi tự ý phát tán thông tin ra môi trường bên ngoài (side effect) khi chưa có sự xác nhận rõ ràng của người dùng. |
 | Test challenge (0 skipped / regression test) | `pytest` output |  |  |
 
 Test challenge: số bug tìm được trong tool có sẵn (nếu có), cách sửa, và test regression tương ứng.
