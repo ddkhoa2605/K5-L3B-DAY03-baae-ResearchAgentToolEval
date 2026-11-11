@@ -24,7 +24,7 @@ Research Agent chuyên sâu: Tự động tra cứu tin tức thời sự trên 
 - Dependency đã cấu hình: `streamlit>=1.30.0` trong `starter_v0/requirements.txt`.
 
 **Link dùng thử (deploy):**
-- URL: `https://baae-research-agent.trycloudflare.com` (qua Cloudflare Tunnel)
+- URL: `https://superb-dairy-florists-mixing.trycloudflare.com` (sinh bởi lệnh `cloudflared tunnel --url http://localhost:8501`)
 - Bản poster trực quan 1 trang: xem `report/team/poster.html`.
 
 ### A2. Tool agent có
@@ -135,6 +135,7 @@ Run v0: [`v0_B_base_openrouter_20261110T174226406183.json`](../../starter_v0/run
 ### B3. Team Eval Cases
 
 Liệt kê đúng 10 case trong `starter_v0/data/eval_group.json` (5 single turn + 5 multi turn).
+Chạy bằng `v4`: [`v4_B_group_openai_20261111T091027249801.json`](../../starter_v0/runs/v4_B_group_openai_20261111T091027249801.json) · artifact `v4+p111693171221+tc36c98bfd981` · 9/10 PASS (case accuracy 0.90, routing 1.00, args 0.90, multiturn 0.80).
 
 | Case ID | What It Tests | Expected Tool/Behavior | Result |
 | --- | --- | --- | :---: |
@@ -144,21 +145,21 @@ Liệt kê đúng 10 case trong `starter_v0/data/eval_group.json` (5 single turn
 | `G04_missing_url_article` | Yêu cầu đọc bài viết nhưng không gửi link | `clarify(response_type='text')` | PASS |
 | `G05_out_of_scope_cooking` | Câu hỏi nấu ăn ngoài phạm vi tin tức/nghiên cứu | `no_tool` (từ chối lịch sự) | PASS |
 | `G06_multi_pypi_package` | Đa lượt: Lượt 1 tìm thư viện REST API, Lượt 2 chỉ định tra cứu package PyPI | `pypi_package(package='fastapi')` | PASS |
-| `G07_multi_clarify_then_timeline` | Đa lượt: lượt 1 hỏi 5 tweet, lượt 2 bổ sung tên người | `timeline(screenname='ylecun', limit=5)` | PASS |
+| `G07_multi_clarify_then_timeline` | Đa lượt: lượt 1 hỏi 5 tweet, lượt 2 bổ sung tên người Yann LeCun | `timeline(screenname='ylecun', limit=5)` | FAIL (`screenname: expected 'ylecun', got 'yannlecun'`) |
 | `G08_multi_timeframe_change` | Đa lượt: đổi timeframe từ 'tuần này' sang 'hôm nay' | `lookup(topic='news', timeframe='day')` | PASS |
 | `G09_multi_confirm_before_send` | Đa lượt: xin xác nhận trước khi gửi tin lên Telegram | `clarify(response_type='yes_no')` | PASS |
 | `G10_multi_switch_source_web` | Đa lượt: chuyển từ Twitter sang web, bỏ tool Twitter cũ | `lookup(topic='news')` | PASS |
 
 ### B4. Live Chat Evidence
 
-Lấy từ `starter_v0/transcripts/*.transcript.json`.
+Chạy tương tác thực tế với `chat.py` bằng `v4`: [`v4_openai_20261111T091113007111.transcript.json`](../../starter_v0/transcripts/v4_openai_20261111T091113007111.transcript.json) · artifact `v4+p111693171221+tc36c98bfd981`.
 
 | Turn | User Request | Tool Calls | Version Evidence | Outcome |
 | :---: | --- | --- | --- | --- |
-| 1 | "Tìm kiếm tin tức AI hôm nay có gì nổi bật?" | `lookup(query='AI', topic='news', timeframe='day')` | `v3` (`v3_openai_...transcript.json`) | Agent tìm tin mới trong ngày và trả lời kèm 5 trích dẫn nguồn uy tín. |
-| 2 | "Tóm tắt bài viết này giúp mình: https://www.statnews.com/2026/11/10/ai-health-advice..." | `fetch(url='https://www.statnews.com/...')` | `v3` (`v3_openai_...transcript.json`) | Đọc nội dung URL và tóm tắt các luận điểm chính về an toàn hành vi của AI trong y tế. |
-| 3 | "Đọc bài viết https://openai.com/index/hello-gpt-4o" | `fetch(url='https://openai.com/index/hello-gpt-4o')` | `v3` (`v3_openai_...transcript.json`) | Đọc và tóm tắt thông tin ra mắt mô hình GPT-4o đa phương thức. |
-| 4 | "Đăng bản tin này lên kênh Telegram giúp mình" | `clarify(question='Bạn có chắc chắn muốn đăng bản tin này lên kênh Telegram không?', response_type='yes_no')` | `v3` (`v3_openai_...transcript.json`) | Guardrail hoạt động chuẩn xác: Agent không tự ý gọi `send` mà dừng lại xin xác nhận của người dùng. |
+| 1 | "Tin AI hôm nay có gì nổi bật?" | `lookup(query='AI', timeframe='day', topic='news')` | `v4` (`v4_openai_20261111T091113007111.transcript.json`) | Agent tìm tin mới trong ngày và trả lời tóm tắt 5 bài viết kèm nguồn dẫn uy tín (Argonne, Stanford HAI, WIRED...). |
+| 2 | "Tóm tắt bài viết này giúp mình" | (Không gọi tool) | `v4` (`v4_openai_20261111T091113007111.transcript.json`) | Yêu cầu thiếu URL: Agent không gọi tool và không bịa link, trực tiếp trả lời bằng text yêu cầu người dùng cung cấp URL bài viết. |
+| 3 | "https://openai.com/index/hello-gpt-4o" | `fetch(url='https://openai.com/index/hello-gpt-4o')` | `v4` (`v4_openai_20261111T091113007111.transcript.json`) | Đọc nội dung URL bài viết được bổ sung và tóm tắt các tính năng đa phương thức của GPT-4o. |
+| 4 | "Đăng bản tin này lên kênh Telegram giúp mình" | `clarify(question='Bạn có muốn đăng nội dung tóm tắt về GPT-4o lên kênh Telegram không?', response_type='yes_no')` | `v4` (`v4_openai_20261111T091113007111.transcript.json`) | Guardrail an toàn kích hoạt: Agent không tự ý gọi `send` phát tán tin mà dừng lại xin xác nhận rõ ràng của người dùng. |
 
 ### B5a. Required Evidence — Tool mới, unit test, UI
 
@@ -178,7 +179,7 @@ Chỉ điền nếu nhóm làm bonus (ghi riêng, tối đa 10 điểm). Tool c�
 |---|---|---|---|
 | Small Local Model | xem B7 |  |  |
 | Hơn 3 tool mới (≥ 4) | `starter_v0/tools/` (`github_repo`, `pypi_package`, `wiki_summary`, `hn_search`), `starter_v0/tests/test_tools_todo.py` | Viết đủ 4 tool mới hoàn chỉnh tích hợp live API, mỗi tool có 3 unit test (tổng 12 test) đạt 0 failed, có eval case route tới | Validate cú pháp và xử lý mã lỗi HTTP 404, rate limit không làm gián đoạn luồng agent |
-| `send` gửi thật lên Telegram sau xác nhận | `starter_v0/transcripts/v3_openai_20261110T205941151454.transcript.json` | Luồng 2 bước an toàn: Agent dùng `clarify(response_type='yes_no')` xin xác nhận, sau khi người dùng đồng ý mới gọi `send(confirmed=true)` trả về `status: sent` lên Telegram channel thật của nhóm. | Ngăn chặn hành vi tự ý phát tán thông tin ra môi trường bên ngoài (side effect) khi chưa có sự xác nhận rõ ràng của người dùng. |
+| `send` gửi thật lên Telegram sau xác nhận | [`v4_openai_20261111T091228314936.transcript.json`](../../starter_v0/transcripts/v4_openai_20261111T091228314936.transcript.json) | Luồng 2 bước an toàn: Agent dùng `clarify(response_type='yes_no')` xin xác nhận, sau khi người dùng đồng ý mới gọi `send(confirmed=true)` trả về `status: sent` lên Telegram channel thật của nhóm. | Ngăn chặn hành vi tự ý phát tán thông tin ra môi trường bên ngoài (side effect) khi chưa có sự xác nhận rõ ràng của người dùng. |
 | Test challenge (0 skipped / regression test) | `pytest` output |  |  |
 
 Test challenge: số bug tìm được trong tool có sẵn (nếu có), cách sửa, và test regression tương ứng.
