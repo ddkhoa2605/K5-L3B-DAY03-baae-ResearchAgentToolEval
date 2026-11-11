@@ -61,7 +61,7 @@ Sao chép mục dưới đây cho từng thành viên.
 
 ### Bằng chứng
 
-- **Commit** (branch `doandangkhoa`, đã merge vào `main` qua PR #2 và PR #3):
+- **Commit** (branch `2A202603766_DoanDangKhoa`, trước đây tên `doandangkhoa`; đã merge vào `main` qua PR #2, #3, #6, #7, #8, #9):
   - `7203903` CP1: baseline v0 run, version log, failure analysis B2
   - `c0f0246` v1: rewrite system prompt (0.65 → 0.95)
   - `2d7c597` v2: rewrite tool descriptions + send/clarify yes_no boundary (0.95 → 0.90)
